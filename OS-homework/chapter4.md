@@ -136,3 +136,109 @@ Stats: CPU Busy 6 (54.55%)
 Stats: IO Busy  5 (45.45%)
 ```
 
+#### 5．现在，运行相同的进程，但切换行为设置，在等待 I/O 时切换到另一个进程（-l 1:0,4:100 -c -S SWITCH_ON_IO）。现在会发生什么？利用-c 来确认你的答案是否正确。
+
+分析：还是占用7个时间片，阻塞的时候运行另一个程序
+
+```shell
+$ ./process-run.py -l 1:0,4:100 -c -S SWITCH_ON_IO -p
+Time        PID: 0        PID: 1           CPU           IOs
+  1         RUN:io         READY             1
+  2        BLOCKED       RUN:cpu             1             1
+  3        BLOCKED       RUN:cpu             1             1
+  4        BLOCKED       RUN:cpu             1             1
+  5        BLOCKED       RUN:cpu             1             1
+  6        BLOCKED          DONE                           1
+  7*   RUN:io_done          DONE             1
+
+Stats: Total Time 7
+Stats: CPU Busy 6 (85.71%)
+Stats: IO Busy  5 (71.43%)
+
+```
+
+#### 6．另一个重要的行为是 I/O 完成时要做什么。利用-I IO_RUN_LATER，当 I/O 完成时， 发出它的进程不一定马上运行。相反，当时运行的进程一直运行。当你运行这个进程组合 时会发生什么？（./process-run.py -l 3:0,5:100,5:100,5:100 -S SWITCH_ON_IO -I IO_RUN_ LATER -c -p）系统资源是否被有效利用？
+
+分析：第一次IO结束后不一定开始下次IO，可能会运行后面的程序；资源未有效利用；最好的情况是io阻塞的时候
+
+运行余下三个程序；仅需要21个时间片；
+
+
+
+```python
+$ ./process-run.py -l 3:0,5:100,5:100,5:100 -S SWITCH_ON_IO -I IO_RUN_LATER -c -p
+Time        PID: 0        PID: 1        PID: 2        PID: 3           CPU           IOs
+  1         RUN:io         READY         READY         READY             1
+  2        BLOCKED       RUN:cpu         READY         READY             1             1
+  3        BLOCKED       RUN:cpu         READY         READY             1             1
+  4        BLOCKED       RUN:cpu         READY         READY             1             1
+  5        BLOCKED       RUN:cpu         READY         READY             1             1
+  6        BLOCKED       RUN:cpu         READY         READY             1             1
+  7*         READY          DONE       RUN:cpu         READY             1
+  8          READY          DONE       RUN:cpu         READY             1
+  9          READY          DONE       RUN:cpu         READY             1
+ 10          READY          DONE       RUN:cpu         READY             1
+ 11          READY          DONE       RUN:cpu         READY             1
+ 12          READY          DONE          DONE       RUN:cpu             1
+ 13          READY          DONE          DONE       RUN:cpu             1
+ 14          READY          DONE          DONE       RUN:cpu             1
+ 15          READY          DONE          DONE       RUN:cpu             1
+ 16          READY          DONE          DONE       RUN:cpu             1
+ 17    RUN:io_done          DONE          DONE          DONE             1
+ 18         RUN:io          DONE          DONE          DONE             1
+ 19        BLOCKED          DONE          DONE          DONE                           1
+ 20        BLOCKED          DONE          DONE          DONE                           1
+ 21        BLOCKED          DONE          DONE          DONE                           1
+ 22        BLOCKED          DONE          DONE          DONE                           1
+ 23        BLOCKED          DONE          DONE          DONE                           1
+ 24*   RUN:io_done          DONE          DONE          DONE             1
+ 25         RUN:io          DONE          DONE          DONE             1
+ 26        BLOCKED          DONE          DONE          DONE                           1
+ 27        BLOCKED          DONE          DONE          DONE                           1
+ 28        BLOCKED          DONE          DONE          DONE                           1
+ 29        BLOCKED          DONE          DONE          DONE                           1
+ 30        BLOCKED          DONE          DONE          DONE                           1
+ 31*   RUN:io_done          DONE          DONE          DONE             1
+
+Stats: Total Time 31
+Stats: CPU Busy 21 (67.74%)
+Stats: IO Busy  15 (48.39%)
+
+```
+
+#### 7．现在运行相同的进程，但使用-I IO_RUN_IMMEDIATE 设置，该设置立即运行发出 I/O 的进程。这种行为有何不同？为什么运行一个刚刚完成 I/O 的进程会是一个好主意？
+
+分析：io结束后立即进行下次io操作；io期间可以运行其余程序，相当于同时进行两个进程；
+
+```shell
+$ ./process-run.py -l 3:0,5:100,5:100,5:100 -S SWITCH_ON_IO -I IO_RUN_IMMEDIATE -c -p
+Time        PID: 0        PID: 1        PID: 2        PID: 3           CPU           IOs
+  1         RUN:io         READY         READY         READY             1
+  2        BLOCKED       RUN:cpu         READY         READY             1             1
+  3        BLOCKED       RUN:cpu         READY         READY             1             1
+  4        BLOCKED       RUN:cpu         READY         READY             1             1
+  5        BLOCKED       RUN:cpu         READY         READY             1             1
+  6        BLOCKED       RUN:cpu         READY         READY             1             1
+  7*   RUN:io_done          DONE         READY         READY             1
+  8         RUN:io          DONE         READY         READY             1
+  9        BLOCKED          DONE       RUN:cpu         READY             1             1
+ 10        BLOCKED          DONE       RUN:cpu         READY             1             1
+ 11        BLOCKED          DONE       RUN:cpu         READY             1             1
+ 12        BLOCKED          DONE       RUN:cpu         READY             1             1
+ 13        BLOCKED          DONE       RUN:cpu         READY             1             1
+ 14*   RUN:io_done          DONE          DONE         READY             1
+ 15         RUN:io          DONE          DONE         READY             1
+ 16        BLOCKED          DONE          DONE       RUN:cpu             1             1
+ 17        BLOCKED          DONE          DONE       RUN:cpu             1             1
+ 18        BLOCKED          DONE          DONE       RUN:cpu             1             1
+ 19        BLOCKED          DONE          DONE       RUN:cpu             1             1
+ 20        BLOCKED          DONE          DONE       RUN:cpu             1             1
+ 21*   RUN:io_done          DONE          DONE          DONE             1
+
+Stats: Total Time 21
+Stats: CPU Busy 21 (100.00%)
+Stats: IO Busy  15 (71.43%)
+
+```
+
+#### 8．现在运行一些随机生成的进程，例如-s 1 -l 3:50,3:50, -s 2 -l 3:50,3:50, -s 3 -l 3:50,3:50。 看看你是否能预测追踪记录会如何变化？当你使用-I IO_RUN_IMMEDIATE 与-I IO_RUN_ LATER 时会发生什么？当你使用-S SWITCH_ON_IO 与-S SWITCH_ON_END 时会发生什么？
