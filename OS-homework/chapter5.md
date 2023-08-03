@@ -252,7 +252,7 @@ hello, I am child (pid:81519)
 #include <string.h>
 
 #define BUF_SIZE 256
-
+// 父进程和子进程pipe
 int main() {
     int pipefd[2];
     char buf[BUF_SIZE];
@@ -283,6 +283,58 @@ int main() {
         close(pipefd[0]); // close the read end of the pipe
         exit(EXIT_SUCCESS);
     }
+}
+
+```
+
+
+
+```c
+#include <unistd.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#define BUF_SIZE 256
+// 子进程之间pipe
+int main() {
+    int pipefd[2];
+    char buf[BUF_SIZE];
+    pid_t pid,pid2;
+
+    if (pipe(pipefd) == -1) {
+        perror("pipe");
+        exit(EXIT_FAILURE);
+    }
+
+    pid = fork();
+    if (pid == -1) {
+        perror("fork");
+        exit(EXIT_FAILURE);
+    }
+
+    if (pid == 0) { // child process
+        close(pipefd[0]); // close the read end of the pipe
+        strcpy(buf, "Hello,  child2 process!\n");
+        write(pipefd[1], buf, strlen(buf));
+        close(pipefd[1]); // close the write end of the pipe
+        exit(EXIT_SUCCESS);
+    } else {// parent process
+        
+	pid2 = fork();
+	if(pid2 == 0){
+		close(pipefd[1]); // close the write end of the pipe
+		while (read(pipefd[0], buf, BUF_SIZE) > 0) {
+		    printf("Received message: %s", buf);
+		}
+			close(pipefd[0]); // close the read end of the pipe
+			exit(EXIT_SUCCESS);
+		}
+
+
+    }
+return 0;
+
 }
 
 ```
