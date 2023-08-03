@@ -242,3 +242,48 @@ hello, I am child (pid:81519)
 
 
 ####  8．编写一个程序，创建两个子进程，并使用 pipe()系统调用，将一个子进程的标准输 出连接到另一个子进程的标准输入。
+
+
+
+```c
+#include <unistd.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#define BUF_SIZE 256
+
+int main() {
+    int pipefd[2];
+    char buf[BUF_SIZE];
+    pid_t pid;
+
+    if (pipe(pipefd) == -1) {
+        perror("pipe");
+        exit(EXIT_FAILURE);
+    }
+
+    pid = fork();
+    if (pid == -1) {
+        perror("fork");
+        exit(EXIT_FAILURE);
+    }
+
+    if (pid == 0) { // child process
+        close(pipefd[0]); // close the read end of the pipe
+        strcpy(buf, "Hello, parent process!\n");
+        write(pipefd[1], buf, strlen(buf));
+        close(pipefd[1]); // close the write end of the pipe
+        exit(EXIT_SUCCESS);
+    } else { // parent process
+        close(pipefd[1]); // close the write end of the pipe
+        while (read(pipefd[0], buf, BUF_SIZE) > 0) {
+            printf("Received message: %s", buf);
+        }
+        close(pipefd[0]); // close the read end of the pipe
+        exit(EXIT_SUCCESS);
+    }
+}
+
+```
+
