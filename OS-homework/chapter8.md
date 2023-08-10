@@ -1,5 +1,49 @@
 #### 1．只用两个工作和两个队列运行几个随机生成的问题。针对每个工作计算 MLFQ 的执 行记录。限制每项作业的长度并关闭 I/O，让你的生活更轻松。
 
+```shell
+  python3 ./mlfq.py -j 3
+Here is the list of inputs:
+OPTIONS jobs 3   // 工作量 3 个
+OPTIONS queues 3	// 队列 3 个
+OPTIONS allotments for queue  2 is   1 //分配情况：队列2 分配job1个
+OPTIONS quantum length for queue  2 is  10 // 时间片长度，队列2 是10个（每次执行）
+OPTIONS allotments for queue  1 is   1 // 队列1 分配1个工作
+OPTIONS quantum length for queue  1 is  10
+OPTIONS allotments for queue  0 is   1 //队列 0 分配一个工作
+OPTIONS quantum length for queue  0 is  10
+OPTIONS boost 0    // 多久job变成高等级
+OPTIONS ioTime 5		//每次IO占用5个时间片长度
+OPTIONS stayAfterIO False  // io结束后不等待
+OPTIONS iobump False //如果为true，则IO结束后job就到当前queue前面去等待
+
+
+For each job, three defining characteristics are given:
+  startTime : at what time does the job enter the system
+  runTime   : the total CPU time needed by the job to finish
+  ioFreq    : every ioFreq time units, the job issues an I/O
+              (the I/O takes ioTime units to complete)
+
+Job List:
+  Job  0: startTime   0 - runTime  84 - ioFreq   7
+  Job  1: startTime   0 - runTime  42 - ioFreq   3
+  Job  2: startTime   0 - runTime  51 - ioFreq   4
+
+Compute the execution trace for the given workloads.
+If you would like, also compute the response and turnaround
+times for each of the jobs.
+
+Use the -c flag to get the exact results when you are finished.
+
+================分析=========================================
+Job List:
+  Job  0: startTime   0 - runTime  84 - ioFreq   7
+  Job  1: startTime   0 - runTime  42 - ioFreq   3
+  Job  2: startTime   0 - runTime  51 - ioFreq   4
+  
+  job0在其中一个队列，占用CPU 84个时间片，io进行了7次，占用时间35个时间片
+
+```
+
 
 
 ####  2．如何运行调度程序来重现本章中的每个实例？
