@@ -188,7 +188,7 @@ job 2 is done at time 11
 
 #### 2．现在运行两个具体的工作：每个长度为 10，但是一个（工作 0）只有一张彩票，另 一个（工作 1）有 100 张（−l 10∶1,10∶100）。 彩票数量如此不平衡时会发生什么？在工作 1 完成之前，工作 0 是否会运行？多久？ 一般来说，这种彩票不平衡对彩票调度的行为有什么影响？
 
-猜想；会运行，一次或者0次
+另一个几乎轮不到运行，变成了排队执行，二者差距不能过大 
 
 ```shell
 $ ./lottery.py -l 10:1,10:100
@@ -200,40 +200,81 @@ ARG quantum 1
 ARG seed 0
 
 Here is the job list, with the run time of each job:
-  Job 0 ( length = 10, tickets = 1 )
-  Job 1 ( length = 10, tickets = 100 )
+  Job 0 ( length = 10, tickets = 1 ) 0
+  Job 1 ( length = 10, tickets = 100 ) 1-100
 total tickets = 101
 
 Here is the set of random numbers you will need (at most):
-Random 844422	mod = 
-Random 757955
-Random 420572
-Random 258917
-Random 511275
-Random 404934
-Random 783799
-Random 303313
-Random 476597
-Random 583382
-Random 908113
-Random 504687
-Random 281838
-Random 755804
-Random 618369
-Random 250506
-Random 909747
-Random 982786
-Random 810218
-Random 902166
+Random 844422	  mod = 62
+Random 757955   mod = 51
+Random 420572   mod = 8
+Random 258917   mod = 54
+Random 511275   mod = 13
+Random 404934   mod = 25
+Random 783799   mod = 39
+Random 303313   mod = 10
+Random 476597   mod = 79
+Random 583382   mod = 6
+job 1 is done at time 10
+Random 908113   mod = 22
+Random 504687   mod = 91
+Random 281838   mod = 48
+Random 755804   mod = 21
+Random 618369   mod = 47
+Random 250506   mod = 26
+Random 909747   mod = 40
+Random 982786   mod = 56
+Random 810218   mod = 97
+Random 902166   mod = 34 
+job 0 is done at time 20
 ```
 
 
 
 ####  3．如果运行两个长度为 100 的工作，都有 100 张彩票（−l100∶100,100∶100），调度 程序有多不公平？运行一些不同的随机种子来确定（概率上的）答案。不公平性取决于一 项工作比另一项工作早完成多少。
 
+按理说就是50%，大体上应该是公平的
+
+```shell
+s = 0
+JOB 0 DONE at time 192
+JOB 0 DONE at time 200
+justice = 0.96
+s = 1
+JOB 1 DONE at time 196
+JOB 0 DONE at time 200
+justice = 0.98
+s = 2
+JOB 1 DONE at time 190
+justice = 0.95
+s = 3 
+JOB 0 DONE at time 196
+justice = 0.98
+
+avg_justice = 0.9675
+```
+
 
 
 ####  4．随着量子规模（-q）变大，你对上一个问题的答案如何改变？ 
+
+```shell
+规模变大，意味着执行的轮数变少，会变得更加不公平
+python3 lottery.py -l 100:100,100:100  -s 0 -q 1 -c
+JOB 0 DONE at time 192
+JOB 1 DONE at time 200
+justice = 0.96
+python3 lottery.py -l 100:100,100:100  -s 0 -q 2 -c
+--> JOB 0 DONE at time 188
+justice = 0.94
+python3 lottery.py -l 100:100,100:100  -s 0 -q 4 -c
+JOB 1 DONE at time 176
+justice = 0.88
+
+python3 lottery.py -l 100:100,100:100  -s 0 -q 10 -c
+--> JOB 1 DONE at time 150
+justice = 0.75
+```
 
 
 
