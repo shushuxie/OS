@@ -15,7 +15,19 @@ int main() {
 
 
 
-####  2．接下来，编译该程序，其中包含符号信息（使用-g 标志）。这样做可以将本多信息 放入可执行文件中，使调试器可以但问有关变量名称等的本多有用信息。通过输入 gdb null， 在调试器下运行该程序，然后，一旦 gdb 运行，输入 run。gdb 显示什么信息？ 
+####  2．接下来，编译该程序，其中包含符号信息（使用-g 标志）。这样做可以将更多信息 放入可执行文件中，使调试器可以但问有关变量名称等的更多有用信息。通过输入 gdb null， 在调试器下运行该程序，然后，一旦 gdb 运行，输入 run。gdb 显示什么信息？ 
+
+```c
+(gdb) run
+Starting program: \\Mac\Home\Documents\typora\\OS-homework\14chapter/null.exe
+[New Thread 4632.0x12f4]
+[New Thread 4632.0x15bc]
+[Inferior 1 (process 4632) exited normally]
+  
+ 
+```
+
+
 
 #### 3．最后，对这个程序使用 valgrind 工具。我们将使用属于 valgrind 的 memcheck 工具 来分析发生的情况。输入以下命令来运行程序：valgrind --leak-check=yes null。当你运行它 时会发生什么？你能解释工具的输出吗？
 
