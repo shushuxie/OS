@@ -9,6 +9,14 @@
 
 #### 2．使用模拟器对随机种子 0、1 和 2 执行翻译，并使用-c 标志检查你的答案。需要多少内存引用来执行每次查找？
 
+   ![Snipaste_2023-08-24_10-07-52](https://github.com/shushuxie/OS/assets/54092341/0cf32f8e-1df2-457b-8ed1-9692f1bae220)
+    
+  基本步骤就是：1. 解析虚拟地址，确定PDIndex，PTindex，offset
+              2. 根据pdIndex和pdbr获取PDE，PDE中取出PFN（该PFN指代页表页位置）；
+              3. 根据平台Index和上面的PFN找到页表的PTE，取出PFN（该PFN指代引用物理内存页）
+              4. 根据上面的PFN和offset计算出真实的物理地址；
+
+
 ```shell
   python3 paging-multilevel-translate.py -s 0
 ARG seed 0
@@ -48,7 +56,7 @@ page  29:17081e031b010710120c030708171c120118090a10071c050c08101113100c13
 page  30:7f7f7f7f7f847f7f7f7f977fbd7f7ff47f7f7f7f7f7f7f7f7f7f7f7f7f7f9c7f
 page  31:7f7f7f7f7f7fd07f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f
 page  32:0000000000000000000000000000000000000000000000000000000000000000
-page  33:7f7f7f7f7f7f7f7fb57f9d7f7f7f7f7f7f7f7f7f7f7f7f7f7f7ff6b17f7f7f7f
+page  33:7f 7f 7f 7f 7f 7f 7f 7f b5 7f9d7f7f7f7f7f7f7f7f7f7f7f7f7f7f7ff6b17f7f7f7f
 page  34:0413050d0c02161518101105060710190b1b16160a031d1a0c1a1b0a0f0a151c
 page  35:0000000000000000000000000000000000000000000000000000000000000000
 page  36:1d1313160c0c1400050a07130b1b110c0c150c14010d0804100f11171b0f090e
@@ -81,7 +89,7 @@ page  62:7f7f7fa87f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f
 page  63:0612060a1d1b19010407181a12161902021a010601001a0a0404141e0f1b0f11
 page  64:18121708080d1e161d10111e0518181a1704141c110b1d110c13180700101d15
 page  65:7f7f7f7f7f7f7f7f7f7f997f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f
-page  66:7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7fd77f7f
+page  66:7f 7f 7f 7f 7f 7f 7f 7f 7f 7f 7f 7f 7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f d7 7f 7f
 page  67:0000000000000000000000000000000000000000000000000000000000000000
 page  68:121216020f060c0f0a0c16011d120511020f150d09141c1b0b1a03011e171311
 page  69:190a19020d0a0d190f1e1a03090016001b050c01090c0117160b1902010b1b17
@@ -169,35 +177,69 @@ PTEAddr = PageTableBaseRegister + (VPN * sizeof(PTE))
 1. PDEAddr = PageDirBase +（PDIndex×sizeof（PDE））
 2. PTEAddr = (PDE.PFN << SHIFT) + (PTIndex * sizeof(PTE))
 pde，pte 都是1byte大小；
-
-Virtual Address 611c: 11000 01000 11100
-pdeAddr= 108+（24*1）= 132
-pteAddr= 33+8 = 100001 10000
-                 0110 1011 1100
-a1 = 1010 0001
-page   5:17 13 1d 0a 1202111906081507081d1e041b1101121301171902140e070e040a14
+计算PDEAddress使用的PDBR寄存器中展示的是内存目录的起始页；108页开始，后面是offset
+注意偏移第一个位置是开始，offset=1 是第二个位置；
+page 108:83 fe e0 da 7f d4 7f eb be 9e d5 ad e4 ac 90 d6 92 d8 c1 f8 9f e1 ed e9 a1 e8 c7 c2 a9 d1 db ff
 Virtual Address 0x611c:
-  --> pde index:0x18 [decimal 24] pde contents:0xa1 (valid 1, pfn 0x21 [decimal 33])
-    --> pte index:0x8 [decimal 8] pte contents:0xb5 (valid 1, pfn 0x35 [decimal 53])
-      --> Translates to Physical Address 0x6bc --> Value: 0x08
+  --> pde index:0x18 [decimal 24] pde contents:0xa1 (valid 1, pfn 0x21 [decimal 33]) 
+    --> pte index:0x8 [decimal 8] pte contents:0xb5 (valid 1, pfn 0x35 [decimal 127])
+      --> Translates to Physical Address 0x6bc --> Value: 0x08（53页第28个，页和offset都是从0开始计数）
 
 
-Virtual Address 3da8: 011 1101 1010 1000 VPN = 011110110 = 246
-PTEAddr= 108+246*12 = 3060 = 1011 1111 0100
-PFN= 1011111 = 95 offset = 10100 = 20
-从第95页偏移20地方取值： 16+3 = 19  13 0b18001b190e030e12070f
+Virtual Address 3da8: 01111 01101 01000 
+  --> pde index:0xF [decimal 15] pde contents:0xd6 (valid 1, pfn 0x56 [decimal 86]) 
+    --> pte index:0xD [decimal 13] pte contents:0x7f (valid 0, pfn 0x35 [decimal 53])
+      --> FAULT (page entyr is Invalid)
 
-Virtual Address 17f5: 001 0111 1111 0101
-Virtual Address 7f6c: 111 1111 0110 1100
-Virtual Address 0bad: 000 1011 1010 1101
-Virtual Address 6d60: 110 1101 0110 0000
+
+Virtual Address 17f5: 00101 11111 10101= 21
+  --> pde index:0x5 [decimal 5] pde contents:0xd4 (valid 1, pfn 0x54 [decimal 84]) 
+    --> pte index:0x1F [decimal 31] pte contents:0xce (valid 1, pfn 0x4E [decimal 78])
+     --> pfn | offset = 100111010101 = 2517 page:78 offset:21
+      --> Translates to Physical Address 0x9D5 --> Value: 0x1C
+
+page 108:83 fe e0 da 7f d4 7f eb be 9e d5 ad e4 ac 90 d6 92 d8 c1 f8 9f e1 ed e9 a1 e8 c7 c2 a9 d1 db ff
+Virtual Address 7f6c: 11111 11011 01100
+  --> pde index:0x1F [decimal 31] pde contents:0xff (valid 1, pfn 0x7F [decimal 127]) 
+    --> pte index:0x1B [decimal 27] pte contents:0x7f (valid 0, pfn 0x [decimal 127])
+      --> FAULT (page entyr is Invalid)
+
+Virtual Address 0bad: 00010 11101 01101
+  --> pde index:0x2 [decimal 2] pde contents:0xe0 (valid 1, pfn 0x60 [decimal 96]) 
+    --> pte index:0x1D [decimal 29] pte contents:0x7f (valid 0, pfn 0x [decimal ])
+      --> FAULT (page entyr is Invalid)
+
+Virtual Address 6d60: 11011 01011 00000
+  --> pde index:0x1B [decimal 27] pde contents:0xc2 (valid 1, pfn 0x42 [decimal 66]) 
+    --> pte index:0xB [decimal 11] pte contents:0x7f (valid 0, pfn 0x [decimal ])
+      --> FAULT (page entyr is Invalid)
+
 Virtual Address 2a5b: 010 1010 0101 1011
-Virtual Address 4c5e: 100 1100 0101 1110
+  --> pde index:0xc2 [decimal ] pde contents:0x (valid , pfn 0x [decimal ]) 
+    --> pte index:0x [decimal ] pte contents:0x (valid , pfn 0x [decimal ])
+      --> Translates to Physical Address 0x --> Value: 0x
+
+Virtual Address 4c5e: 10011 00010 11110
+  --> pde index:0x13 [decimal 19] pde contents:0xf8 (valid 1, pfn 0x78 [decimal 120]) 
+    --> pte index:0x2 [decimal 2] pte contents:0x7f (valid , pfn 0x [decimal ])
+      --> FAULT (page entyr is Invalid)
+
 Virtual Address 2592: 010 0101 1001 0010
+  --> pde index:0x [decimal ] pde contents:0x (valid , pfn 0x78 [decimal 120]) 
+    --> pte index:0x [decimal ] pte contents:0x (valid , pfn 0x [decimal ])
+      --> Translates to Physical Address 0x --> Value: 0x
+
 Virtual Address 3e99: 011 1110 1001 1001
+  --> pde index:0x [decimal ] pde contents:0x (valid , pfn 0x [decimal ]) 
+    --> pte index:0x [decimal ] pte contents:0x (valid , pfn 0x [decimal ])
+      --> Translates to Physical Address 0x --> Value: 0x
 
 ```
 
 
 
 #### 3．根据你对缓存内存的工作原理的理解，你认为对页表的内存引用如何在缓存中工作？它们是否会导致大量的缓存命中（并导致快速访问）或者很多未命中（并导致访问缓慢）？
+
+应该是分级，引用，先去tlb中找，如果未命中会更多缓慢，各级缓存都要更新
+
+
